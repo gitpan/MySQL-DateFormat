@@ -6,8 +6,8 @@ use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "1.00";
-$VERSION_DATE = "November 14, 2001";
+$VERSION = "1.01";
+$VERSION_DATE = "January 9, 2002";
 
 sub new {
     my $proto = shift;
@@ -102,7 +102,7 @@ sub frMySQL {
 	}
 
 	my @elements = ($m,$d,$y);
-	@elements = ($d,$m,$y) if $self->{args}->{format} and $self->{args}->{format} eq 'euro';
+	@elements = ($d,$m,$y) if $self->{args}->{format} and $self->{args}->{format} eq 'eu';
 
 	return join($separator, @elements);
 }
@@ -258,6 +258,9 @@ By default it returns dates with leading zeroes in months and dates less than 10
 =back
 
 =head1 CHANGES
+
+ v1.01
+ o Fixed typo that was breaking European output format (Jorn Holm, jorn@zirus.no)
 
  v1.00
  o Repackaged for CPAN as MySQL::DateFormat as suggested on modules@perl.org

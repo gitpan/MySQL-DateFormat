@@ -6,8 +6,8 @@ use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "1.01";
-$VERSION_DATE = "January 9, 2002";
+$VERSION = "1.02";
+$VERSION_DATE = "November 30, 2014";
 
 sub new {
     my $proto = shift;
@@ -259,6 +259,9 @@ By default it returns dates with leading zeroes in months and dates less than 10
 
 =head1 CHANGES
 
+ v1.02
+ o Fixed missing prerequisite of Date::Calc in Makefile.PL
+
  v1.01
  o Fixed typo that was breaking European output format (Jorn Holm, jorn@zirus.no)
 
@@ -266,16 +269,16 @@ By default it returns dates with leading zeroes in months and dates less than 10
  o Repackaged for CPAN as MySQL::DateFormat as suggested on modules@perl.org
 
  v0.92
- o Removed default format; required format to be specified (wanky Euros on datetime@perl.org)
+ o Removed default format; required format to be specified (suggested by several European members on datetime@perl.org)
  o Added discussion to docs of error-checking
 
 =head1 AUTHOR
 
-Author: Nick Tonkin (nick@tonkinresolutions.com)
+Author: Nick Tonkin (1nickt@gmail.com)
 
 =head1 COPYRIGHT
 
-Copyright (c) 2001 Nick Tonkin. All rights reserved.
+Copyright (c) 2001-2014 Nick Tonkin. All rights reserved.
 
 =head1 LICENSE
 

@@ -6,7 +6,7 @@ use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "1.02";
+$VERSION = "1.03";
 $VERSION_DATE = "November 30, 2014";
 
 sub new {
@@ -258,6 +258,9 @@ By default it returns dates with leading zeroes in months and dates less than 10
 =back
 
 =head1 CHANGES
+
+ v1.03
+ o Previous version wasn't packaged right for PAUSE
 
  v1.02
  o Fixed missing prerequisite of Date::Calc in Makefile.PL

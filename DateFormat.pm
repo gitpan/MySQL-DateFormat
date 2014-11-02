@@ -7,12 +7,12 @@ use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "2.02";
-$VERSION_DATE = "November 1, 2014";
+$VERSION = "2.03";
+$VERSION_DATE = "November 2, 2014";
 
-enum 'format_code'   => qw( eu us );
+enum 'format_code'   => [qw( eu us )];
 has 'format'         => ( is => 'ro', isa => 'format_code', required => 1 );
-enum 'informal_code' => qw ( 0 1 2 );
+enum 'informal_code' => [qw ( 0 1 2 )];
 has 'informal'       => ( is => 'ro', isa => 'informal_code', default => 0 );
 has 'century_cutoff' => ( is => 'ro', isa => 'Int', default => 20 );
 has 'separator'      => ( is => 'ro', isa => 'Str', default => '/' );
@@ -127,6 +127,8 @@ The module allows the user to configure the format for dates used in the applica
 Another very important task when using MySQL is error checking of the "human-readable" dates supplied. This is because MySQL does not raise an error when given an invalid date, but simply inserts "0000-00-00". The module handles error-checking transparently.
 
 Errors are reported with Carp and the module returns 0 -- the author feels that dieing is unnecessary so long as the programmer remembers to check the values returned.
+
+This version of the module requires Moose. Version 1.x is maintained for use by those who prefer not to install Moose and its dependencies on their system.
 
 -------------------------------------
 
@@ -260,6 +262,9 @@ By default it returns dates with leading zeroes in months and dates less than 10
 =back
 
 =head1 CHANGES
+
+ v2.03
+ o Fixed warning about not having Moose's enum valuesin an arrayref
 
  v2.02
  o Fixed a couple of typos in the documentation

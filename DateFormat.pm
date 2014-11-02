@@ -1,115 +1,107 @@
 package MySQL::DateFormat;
 
-use strict;
 use Carp;
+use Moose;
+use Moose::Util::TypeConstraints;
 use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "1.03";
-$VERSION_DATE = "November 30, 2014";
+$VERSION = "2.00";
+$VERSION_DATE = "November 1, 2014";
 
-sub new {
-    my $proto = shift;
-    my $class = ref($proto) || $proto;
-    my $self = {};
-	%{ $self->{args} } = @_;
-	unless ($self->{args}->{format}) {
-		croak "[$$] No format specified. Value of 'format' arg must be 'us' or 'eu'.";
-	}
-    bless($self, $class);
-    return $self;
-}
+enum 'format_code'   => qw( eu us );
+has 'format'         => ( is => 'ro', isa => 'format_code', required => 1 );
+enum 'informal_code' => qw ( 0 1 2 );
+has 'informal'       => ( is => 'ro', isa => 'informal_code', default => 0 );
+has 'century_cutoff' => ( is => 'ro', isa => 'Int', default => 20 );
+has 'separator'      => ( is => 'ro', isa => 'Str', default => '/' );
 
 sub toMySQL {
-	my $self = shift;
-	my $date = shift;
-	
-	unless ($date) {
-		carp "[$$] No date supplied";
-		return 0;
-	}
 
-	$date =~ s#/#-#g; # we accept either
-	
-	my ($d, $m, $y);
-	my ($a, $b, $c) = split("-", $date);
+    my $self = shift;
+    my $date = shift;
 
-	unless ($a and $b and $c) {
-		carp "[$$] Invalid date [$a/$b/$c]";
-		return 0;
-	}
-
-	if ($self->{args}->{format} eq 'eu') {
-		# Europe format: DD/MM/YYYY
-		$d = $a; $m = $b; $y = $c;
-	} elsif ($self->{args}->{format} eq 'us') {
-		# USA format: MM/DD/YYYY
-		$m = $a; $d = $b; $y = $c;
-	} else {
-		carp "[$$] Invalid format specified. Value of 'format' arg must be 'us' or 'eu'.";
-		return 0;
-	}
-
-    if ($self->{args}->{century_cutoff} and $self->{args}->{century_cutoff} eq 'disallow'
-        and $y !~ m/^\d{4}$/) {
-        carp "[$$] Two-digit year supplied when four digits required";
+    unless ($date) {
+        carp "[$$] No date supplied";
         return 0;
     }
 
-	$m = sprintf("%0.2d", $m);
-	$d = sprintf("%0.2d", $d);
+    $date =~ s#/#-#g; # we accept either as a separator
 
-	my $cutoff = 20;
-	if ($self->{args}->{century_cutoff} and $self->{args}->{century_cutoff} =~ m/^\d{1,2}$/) {
-		$cutoff = $self->{args}->{century_cutoff};
-	}
-	$y = ($y < 100) ? ($y > $cutoff) ? $y + 1900 : $y + 2000 : $y;
+    my ($d, $m, $y);
+    my ($a, $b, $c) = split("-", $date);
 
-	unless (Date::Calc::check_date($y,$m,$d)) {
-		carp "[$$] Invalid date [y:$y m:$m d:$d]";
-		return 0;
-	}
+    unless ($a and $b and $c) {
+        carp "[$$] Invalid date [$a/$b/$c]";
+        return 0;
+    }
 
-	return join("-", $y, $m, $d);
+    if ($self->format eq 'eu') {
+        # Europe format: DD/MM/YYYY
+        $d = $a; $m = $b; $y = $c;
+    } elsif ($self->format eq 'us') {
+        # USA format: MM/DD/YYYY
+        $m = $a; $d = $b; $y = $c;
+    } else {
+        carp "[$$] Invalid format specified. Value of 'format' arg must be 'us' or 'eu'.";
+        return 0;
+    }
+
+    if ($self->century_cutoff eq 'disallow' and $y !~ m/^\d{4}$/) {
+        carp "[$$] Two-digit year supplied when four digits required.";
+        return 0;
+    } elsif ($self->century_cutoff !~ m/^\d{1,2}$/) {
+        carp "[$$] Invalid century_cutoff specified. Value of 'century_cutoff' arg must be a two-digit integer or 'disallow'.";
+        return 0;
+    } 
+    $y = ($y < 100) ? ($y > $self->century_cutoff) ? $y + 1900 : $y + 2000 : $y;
+    $m = sprintf("%0.2d", $m);
+    $d = sprintf("%0.2d", $d);
+
+    unless (Date::Calc::check_date($y,$m,$d)) {
+        carp "[$$] Invalid date [y:$y m:$m d:$d]";
+        return 0;
+    }
+
+    return join("-", $y, $m, $d);
+
 }
 
 sub frMySQL {
-	my $self = shift;
-	my $date = shift;
+    my $self = shift;
+    my $date = shift;
 
-	unless ($date) {
-		carp "[$$] No date supplied";
-		return 0;
-	}
-	
-	$date =~ s#/#-#g;
-	my ($y,$m,$d) = split("-", $date);
+    unless ($date) {
+        carp "[$$] No date supplied";
+        return 0;
+    }
 
-	unless (Date::Calc::check_date($y,$m,$d)) {
-       	carp "[$$] Invalid date [y:$y m:$m d:$d]";
-       	return 0;
-   	}
+    $date =~ s#/#-#g;
+    my ($y,$m,$d) = split("-", $date);
 
-	if ($self->{args}->{informal}) {
-		$m =~ s/^0//;
-		$d =~ s/^0//;
-	}
-	
-	my $separator = '/';
-	if ($self->{args}->{separator}) {
-		$separator = $self->{args}->{separator};
-	}
+    unless (Date::Calc::check_date($y,$m,$d)) {
+        carp "[$$] Invalid date [y:$y m:$m d:$d]";
+        return 0;
+    }
 
-	my @elements = ($m,$d,$y);
-	@elements = ($d,$m,$y) if $self->{args}->{format} and $self->{args}->{format} eq 'eu';
+    if ($self->informal > 0) {
+        $m =~ s/^0//;
+        $d =~ s/^0//;
+    }
+    if ($self->informal > 1) {
+        $y =~ s/^..//;
+    }
 
-	return join($separator, @elements);
+    my @elements = $self->format eq 'us' ? ($m,$d,$y) : ($d,$m,$y);
+
+    return join($self->separator, @elements);
+
 }
 
 1;
-
 __END__
+
 
 =pod
 
@@ -130,10 +122,11 @@ The MySQL RDBMS requires dates to be supplied in YYYY-MM-DD format[1,2,3], but m
 
 While there are multiple ways in Perl to format dates, and while certain modules on CPAN exist that perform the date formatting that is part of this module's functionality, the author believes that there is a place for a package tailored to the MySQL database. Even if one used Date::Format and the super-configurability of its underlying C routines, there would still be a need in a large application for a package containing routines to reformat the dates coming in and going out of the database server. And that's not all:
 
-The module allows the user to configure the format for dates used in the application code, whether to use or req
-uire four digits for the year, what year to use as century cutoff if two-digit years are allowed, etc., etc. All these configuration options are managed by the user through an extrememly simple interface. In the realm in which this module is intended to be used, the author has found this to be a significant advantage.
+The module allows the user to configure the format for dates used in the application code, whether to use or require four digits for the year, what year to use as century cutoff if two-digit years are allowed, etc., etc. All these configuration options are managed by the user through an extrememly simple interface. In the realm in which this module is intended to be used, the author has found this to be a significant advantage.
 
 Another very important task when using MySQL is error checking of the "human-readable" dates supplied. This is because MySQL does not raise an error when given an invalid date, but simply inserts "0000-00-00". The module handles error-checking transparently.
+
+Errors are reported with Carp and the module returns 0 -- the author feels that dieing is unnecessary so long as the programmer remembers to check the values returned.
 
 -------------------------------------
 
@@ -181,22 +174,27 @@ If you want to change the default behavior of the toMySQL() method regarding two
 Or you can force the application to provide four-digit years (good Y2K practise but resisted by many human users):
 
  my $md = MySQL::DateFormat->new(century_cutoff => 'disallow', format => 'us');
- # will print a warning and return 0 unless the year has four digits
+ # carps and returns 0 unless the year has four digits
 
 =item B<informal>
 
-You can tell the module to return your dates in informal format, i.e. not include leading zeroes for months and days (years will always be returned in four-digit format):
+You can tell the module to return your dates in informal format, i.e. not include leading zeroes for months and days, and for years`:
 
+ my $md = MySQL::DateFormat->new(format => 'us');
+ # returns something like "05/09/1987"
  my $md = MySQL::DateFormat->new(informal => 1, format => 'us');
- # will return something like "5/31/1987"
- # not needed to allow informal (single-digit month and date) input; that's on by default
+ # returns something like "5/9/1987"
+ my $md = MySQL::DateFormat->new(informal => 2, format => 'us');
+ #returns something like "5/9/87"
+
+ Note that it is not required to allow informal (single-digit month and date) input; that's on by default
 
 =item B<separator>
 
 You can specify the separator you want to get in dates returned by frMySQL():
 
  my $md = MySQL::DateFormat->new(separator => "!");
- # will return something like "05!31!1987"
+ # will return something like "05!09!1987"
 
 =back
 
@@ -204,8 +202,8 @@ You can specify the separator you want to get in dates returned by frMySQL():
 
 Now you can use your object to format dates:
 
- my $mysql_format_date = $md->toMySQL("5/31/87");
- my $human_format_date = $md->frMySQL("1987-05-31");
+ my $mysql_format_date = $md->toMySQL("5/09/87");
+ my $human_format_date = $md->frMySQL("1987-05-09");
 
 Here's a little more information on each of these methods:
 
@@ -220,22 +218,22 @@ The method will return false if not provided a valid date, so programmers should
 It accepts date separators of '-' and '/' and will convert the latter to the former for MySQL.
 
  my $md = MySQL::DateFormat->new(format => 'eu');
- print $md->toMySQL("31/05/1987");
- # prints "1987-05-31"
+ print $md->toMySQL("09/05/1987");
+ # prints "1987-05-09"
 
 It accepts months and dates of single-digit format, padding with a leading zero where the value is less than 10.
 
 It accepts years of two-digit format, unless this is disallowed by setting the value of the constructor argument 'century_cutoff' to 'disallow', as shown above.
 
-If two-digit years are allowed, the program adds the century thus: two-digit years from 00 to 19 are assigned to the 21st century (they have 2000 added to them) while two-digit years from 20 to 99 are assigned to the 20th century (they have 1900 added to them). This arbitrary default rule works for me; you can override it by setting the value of the constructor argument 'century_cutoff' to the highest number year you want to assign to the 21st century.
+If two-digit years are allowed, the program adds the century thus: two-digit years from 00 to 20 are assigned to the 21st century (they have 2000 added to them) while two-digit years from 21 to 99 are assigned to the 20th century (they have 1900 added to them). This arbitrary default rule works for me; you can override it by setting the value of the constructor argument 'century_cutoff' to the highest number year you want to assign to the 21st century.
 
  my $md = MySQL::DateFormat->new(format => 'us');
- print $md->toMySQL("5/31/87");
- # prints "1987-05-31"
+ print $md->toMySQL("5/09/87");
+ # prints "1987-05-09"
 
  $md = MySQL::DateFormat->new(century_cutoff => 87, format => 'us');
- print $md->toMySQL("5/31/87");
- # prints "2087-05-31"
+ print $md->toMySQL("5/09/87");
+ # prints "2087-05-09"
 
 =item B<frMySQL()>
 
@@ -246,18 +244,27 @@ The method will return false if not provided a valid date, so programmers should
 By default it returns dates with a separator of '/'; you can override this by setting the value of the constructor 'separator' argument to the character you wish to use.
 
  my $md = MySQL::DateFormat->new(separator => '!', format => 'us');
- print $md->frMySQL("1987-05-31");
- # prints "05!31!1987"
+ print $md->frMySQL("1987-05-09");
+ # prints "05!09!1987"
 
-By default it returns dates with leading zeroes in months and dates less than 10. You can turn this behavior off by setting the value of the constructor argument 'informal' to true:
+By default it returns dates with leading zeroes in months and dates less than 10, and years with four digits. You can turn this behavior off by setting the value of the constructor argument 'informal' to '1' or '2'; 
 
  my $md = MySQL::DateFormat->new(informal => 1, format => 'us');
- print $md->frMySQL("1987-05-31");
- # prints "5/31/1987"
+ print $md->frMySQL("1987-05-09");
+ # prints "5/9/1987"
+ my $md = MySQL::DateFormat->new(informal => 2, format => 'us');
+ print $md->frMySQL("1987-05-09");
+ # prints "5/9/87"
+
 
 =back
 
 =head1 CHANGES
+ v2.01
+ o Added a second true value for 'informal' argument so the year returned from MySQL can be trimmed to two digits
+
+ v2.00
+ o Rewritten using Moose
 
  v1.03
  o Previous version wasn't packaged right for PAUSE

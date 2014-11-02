@@ -5,5 +5,5 @@ WriteMakefile(
     'NAME'	   => 'MySQL::DateFormat',
     'VERSION_FROM' => 'DateFormat.pm', # finds $VERSION
     'AUTHOR'       => 'Nick Tonkin (1nickt@gmail.com)',
-    'PREREQ_PM'    => { 'Date::Calc' => '0' }
+    'PREREQ_PM'    => { 'Date::Calc' => '0', 'Moose' => '0', 'Moose::Util::TypeConstraints' => '0' }
 );

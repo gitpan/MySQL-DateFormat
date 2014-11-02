@@ -7,7 +7,7 @@ use Date::Calc;
 
 use vars qw($VERSION $VERSION_DATE);
 
-$VERSION = "2.00";
+$VERSION = "2.02";
 $VERSION_DATE = "November 1, 2014";
 
 enum 'format_code'   => qw( eu us );
@@ -260,6 +260,10 @@ By default it returns dates with leading zeroes in months and dates less than 10
 =back
 
 =head1 CHANGES
+
+ v2.02
+ o Fixed a couple of typos in the documentation
+
  v2.01
  o Added a second true value for 'informal' argument so the year returned from MySQL can be trimmed to two digits
 
